@@ -330,7 +330,7 @@ export function resolveFrontendBase(): string {
   if (process.env.XAGENT_ENV === "prod") {
     return "https://www.xerpaai.com";
   }
-  return "https://testdapp.xerpaai.com";
+  return "https://testxagent.xerpaai.com";
 }
 
 function isMainModule(): boolean {

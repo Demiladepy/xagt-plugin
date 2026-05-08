@@ -1,4 +1,5 @@
-import { execFile } from "node:child_process";
+import { writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { loadCredentials, type SavedCredentials } from "./auth/credentials.js";
@@ -21,15 +22,17 @@ export interface SubmitPayload {
 export interface SubmitOptions {
   cliVersion: string;
   input: SubmitInput;
-  openBrowser?: boolean;
   submissionRepo?: string;
   submissionBranch?: string;
+  outputDir?: string;
 }
 
 export interface SubmitResult {
   participantId: string;
   filename: string;
-  url: string;
+  forkUrl: string;
+  repoUrl: string;
+  localPath: string;
   markdown: string;
 }
 
@@ -53,18 +56,19 @@ export async function runSubmit(options: SubmitOptions): Promise<SubmitResult> {
   const branch = options.submissionBranch ?? DEFAULT_BRANCH;
   const filename = `projects/${payload.participantId}/README.md`;
   const markdown = renderMarkdown(payload, options.cliVersion);
-  const url = buildGitHubNewFileUrl({ repo, branch, filename, content: markdown });
+  const repoUrl = `https://github.com/${repo}`;
+  const forkUrl = `${repoUrl}/fork`;
 
-  if (options.openBrowser !== false) {
-    await openBrowser(url).catch(() => {
-      // best-effort; if open fails, the URL is still printed by the caller
-    });
-  }
+  const outDir = options.outputDir ?? process.cwd();
+  const localPath = resolve(outDir, `submission-${payload.participantId}.md`);
+  await writeFile(localPath, markdown, "utf8");
 
   return {
     participantId: payload.participantId,
     filename,
-    url,
+    forkUrl,
+    repoUrl,
+    localPath,
     markdown
   };
 }
@@ -88,16 +92,24 @@ async function collectPayload(seed: SubmitInput, credentials: SavedCredentials):
     };
   }
   const rl = createInterface({ input, output });
+  const askRequired = async (label: string, seeded?: string): Promise<string> => {
+    if (seeded && seeded.trim()) return seeded.trim();
+    while (true) {
+      const v = (await rl.question(`  ${label}: `)).trim();
+      if (v) return v;
+      output.write(`  (${label} is required)\n`);
+    }
+  };
   try {
-    const name = (seed.name ?? (await rl.question("  Project name: "))).trim();
-    const intro = (seed.intro ?? (await rl.question("  One-line description: "))).trim();
-    const repo = (seed.repo ?? (await rl.question("  GitHub repo URL: "))).trim();
+    const name = await askRequired("Project name", seed.name);
+    const intro = await askRequired("One-line description", seed.intro);
+    const repo = await askRequired("GitHub repo URL", seed.repo);
     const deployRaw = (seed.deploy ?? (await rl.question("  Deployed URL (optional, blank to skip): "))).trim();
     return {
       name,
       intro,
-      repo,
-      deploy: deployRaw.length > 0 ? deployRaw : undefined,
+      repo: normalizeUrl(repo),
+      deploy: deployRaw.length > 0 ? normalizeUrl(deployRaw) : undefined,
       participantId: credentials.userId
     };
   } finally {
@@ -113,8 +125,13 @@ function validatePayload(p: SubmitPayload): void {
   if (!p.name) throw new Error("project name is required");
   if (!p.intro) throw new Error("description is required");
   if (!p.repo) throw new Error("GitHub repo URL is required");
-  if (!/^https?:\/\//.test(p.repo)) throw new Error("repo URL must start with http(s)://");
-  if (p.deploy && !/^https?:\/\//.test(p.deploy)) throw new Error("deploy URL must start with http(s)://");
+}
+
+function normalizeUrl(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return trimmed;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed.replace(/^\/+/, "")}`;
 }
 
 export function renderMarkdown(payload: SubmitPayload, cliVersion: string): string {
@@ -144,32 +161,3 @@ Build with XAgent × OKX (May 2026)
 `;
 }
 
-export function buildGitHubNewFileUrl(input: {
-  repo: string;
-  branch: string;
-  filename: string;
-  content: string;
-}): string {
-  const lastSlash = input.filename.lastIndexOf("/");
-  const dir = lastSlash >= 0 ? input.filename.slice(0, lastSlash) : "";
-  const file = lastSlash >= 0 ? input.filename.slice(lastSlash + 1) : input.filename;
-  const params = new URLSearchParams();
-  params.set("filename", file);
-  params.set("value", input.content);
-  return `https://github.com/${input.repo}/new/${input.branch}/${dir}?${params.toString()}`;
-}
-
-async function openBrowser(url: string): Promise<void> {
-  let cmd = "xdg-open";
-  let args = [url];
-  if (process.platform === "darwin") {
-    cmd = "open";
-  }
-  if (process.platform === "win32") {
-    cmd = "cmd";
-    args = ["/c", "start", "", url];
-  }
-  await new Promise<void>((resolve, reject) => {
-    execFile(cmd, args, (err) => (err ? reject(err) : resolve()));
-  });
-}

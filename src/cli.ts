@@ -223,11 +223,19 @@ export async function runCli(args: string[]): Promise<number> {
         }
       });
       process.stdout.write(`\n  ✓ Participant: ${result.participantId}\n`);
-      process.stdout.write(`  ✓ File: ${result.filename}\n\n`);
-      process.stdout.write("  Opened GitHub in your browser. Click \"Propose new file\" → \"Create pull request\".\n");
-      process.stdout.write("  GitHub will fork the repo and open the PR for you.\n\n");
-      process.stdout.write("  If the browser didn't open, go here manually:\n");
-      process.stdout.write(`    ${result.url}\n\n`);
+      process.stdout.write(`  ✓ Generated:   ${result.localPath}\n\n`);
+      process.stdout.write("  Submit as a PR to xerpa-ai/xagent-plugin:\n\n");
+      process.stdout.write(`    1. Fork in browser: ${result.forkUrl}\n\n`);
+      process.stdout.write("    2. Clone your fork and add the submission:\n\n");
+      process.stdout.write(`       git clone https://github.com/<your-gh-username>/xagent-plugin\n`);
+      process.stdout.write(`       cd xagent-plugin\n`);
+      process.stdout.write(`       git checkout -b submit-${result.participantId}\n`);
+      process.stdout.write(`       mkdir -p projects/${result.participantId}\n`);
+      process.stdout.write(`       cp "${result.localPath}" projects/${result.participantId}/README.md\n`);
+      process.stdout.write(`       git add projects/${result.participantId}/README.md\n`);
+      process.stdout.write(`       git commit -m "submit: ${result.participantId}"\n`);
+      process.stdout.write(`       git push -u origin submit-${result.participantId}\n\n`);
+      process.stdout.write(`    3. Open a PR against ${result.repoUrl}/compare\n\n`);
       return 0;
     } catch (error) {
       if (error instanceof NotRegisteredError) {
@@ -279,7 +287,7 @@ function writeHelp(): void {
   xagent-plugin setup [--target cursor|claude-code|generic|all] [--dry-run] [--no-browser] [--loopback] [--skip-substep]
                               # one-shot: registers you + installs OKX skills
   xagent-plugin submit [--name <s>] [--intro <s>] [--repo <url>] [--deploy <url>]
-                              # opens GitHub in browser to submit your project
+                              # generates README; you fork + PR to xerpa-ai/xagent-plugin
   xagent-plugin login [--no-browser] [--loopback]   # re-login or switch accounts
   xagent-plugin logout                  # clear local credentials
   xagent-plugin install [--target ...]  # install skills only (no login)
@@ -330,7 +338,7 @@ export function resolveFrontendBase(): string {
   if (process.env.XAGENT_ENV === "prod") {
     return "https://www.xerpaai.com";
   }
-  return "https://testxagent.xerpaai.com";
+  return "https://testwww.xerpaai.com";
 }
 
 function isMainModule(): boolean {

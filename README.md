@@ -192,17 +192,13 @@ Credentials at `~/.config/xagent/credentials.json` (`%APPDATA%\xagent\credential
 | Env var                  | Resolves to                       |
 |--------------------------|-----------------------------------|
 | _(unset)_                | `https://api.xerpaai.com` (prod)  |
-| `XAGENT_ENV=test`        | `https://testdapp.xerpaai.com`    |
 | `XAGENT_API_BASE=<url>`  | whatever you set                  |
-
-Production endpoints may not be deployed yet. If `xagent-plugin login` returns `request failed: 404`, switch to `XAGENT_ENV=test`.
 
 ### Troubleshooting
 
 | Symptom                                  | Fix                                                              |
 |------------------------------------------|-------------------------------------------------------------------|
 | `npx ... setup` exits 0 with no output   | You hit `0.1.0`. Pin `@latest` or `npx clear-npx-cache`.          |
-| `login` returns `request failed: 404`    | Production endpoints not deployed. Use `XAGENT_ENV=test`.         |
 | Browser opens but never returns          | Frontend allowlist missing host. See `docs/SETUP_FLOW.md`.        |
 | `EACCES` writing to `~/.claude/skills/`  | Wrong user. Don't `sudo`.                                         |
 | `command not found: xagent-plugin`       | Not globally installed. Run `npm i -g @xagt/agent-plugin`.        |

@@ -61,4 +61,4 @@ Use this payload shape:
 
 - Ask for user confirmation before opening a browser or starting OAuth if the runtime requires approval.
 - If the plugin-store install command fails, report the failure status instead of retrying indefinitely.
-- If login stops at `userAuth` and does not return to CLI, check the frontend external-app allowlist includes backend callback hosts (`testdapp.xerpaai.com` / `api.xerpaai.com`).
+- If login stops at `userAuth` and does not return to the CLI, the user may need to retry — most likely the browser tab was closed before the redirect completed.

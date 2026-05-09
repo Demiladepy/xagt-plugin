@@ -1,8 +1,10 @@
 import { initDeviceAuth, pollDeviceToken } from "./exchange.js";
+import { buildDeviceLoginUrl } from "./url.js";
 import type { SavedCredentials } from "./credentials.js";
 
 export async function loginWithDeviceCode(input: {
   baseUrl: string;
+  frontendBase: string;
   clientVersion: string;
 }): Promise<SavedCredentials> {
   const start = Date.now();
@@ -10,8 +12,13 @@ export async function loginWithDeviceCode(input: {
     baseUrl: input.baseUrl,
     clientVersion: input.clientVersion
   });
+  const verifyUrl = buildDeviceLoginUrl({
+    frontendBase: input.frontendBase,
+    baseUrl: input.baseUrl,
+    userCode: init.userCode
+  });
   process.stdout.write(`User code: ${init.userCode}\n`);
-  process.stdout.write(`Open: ${init.verificationUriComplete || init.verificationUri}\n`);
+  process.stdout.write(`Open: ${verifyUrl}\n`);
 
   const deadline = Date.now() + init.expiresIn * 1000;
   let intervalMs = Math.max(init.interval, 2) * 1000;

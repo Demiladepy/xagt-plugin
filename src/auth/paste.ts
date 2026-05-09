@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { exchangeLoopbackCode, initLoopbackAuth } from "./exchange.js";
+import { buildLoopbackLoginUrl } from "./url.js";
 import type { SavedCredentials } from "./credentials.js";
 
 export async function loginWithPasteCode(input: {
@@ -17,11 +18,17 @@ export async function loginWithPasteCode(input: {
     redirectUri
   });
 
+  const loginUrl = buildLoopbackLoginUrl({
+    frontendBase: input.frontendBase,
+    baseUrl: input.baseUrl,
+    sessionId: init.sessionId,
+    state: init.state
+  });
   process.stdout.write("\n  Open this URL to log in to XAgent:\n\n");
-  process.stdout.write(`    ${init.loginUrl}\n\n`);
+  process.stdout.write(`    ${loginUrl}\n\n`);
   if (input.openBrowser) {
     process.stdout.write("  Opening your default browser...\n");
-    await openBrowser(init.loginUrl).catch(() => undefined);
+    await openBrowser(loginUrl).catch(() => undefined);
   }
 
   process.stdout.write("\n  After login, the page shows an authentication code.\n");

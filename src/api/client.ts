@@ -25,6 +25,7 @@ async function request<TResponse>(
 ): Promise<TResponse> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 15_000);
+  const url = new URL(path, normalizeBaseUrl(options.baseUrl));
   try {
     const headers: Record<string, string> = {
       "content-type": "application/json"
@@ -35,12 +36,17 @@ async function request<TResponse>(
     if (options.headers) {
       Object.assign(headers, options.headers);
     }
-    const response = await fetch(new URL(path, normalizeBaseUrl(options.baseUrl)), {
-      method,
-      headers,
-      body: payload === undefined ? undefined : JSON.stringify(payload),
-      signal: controller.signal
-    });
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method,
+        headers,
+        body: payload === undefined ? undefined : JSON.stringify(payload),
+        signal: controller.signal
+      });
+    } catch (cause) {
+      throw new Error(`fetch failed: ${method} ${url.host}${url.pathname} — ${describeFetchError(cause, controller.signal.aborted)}`, { cause });
+    }
     const body = await readJsonEnvelope<TResponse>(response);
     if (!response.ok) {
       throw new Error(body.msg ?? `request failed: ${response.status}`);
@@ -52,6 +58,14 @@ async function request<TResponse>(
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function describeFetchError(error: unknown, aborted: boolean): string {
+  if (aborted) return "request timed out";
+  const cause = (error as { cause?: { code?: string; message?: string } } | undefined)?.cause;
+  const code = cause?.code;
+  const message = cause?.message ?? (error instanceof Error ? error.message : String(error));
+  return code ? `${code} ${message}` : message;
 }
 
 async function readJsonEnvelope<TResponse>(response: Response): Promise<{

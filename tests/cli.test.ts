@@ -38,15 +38,10 @@ describe("parseArgs", () => {
 });
 
 describe("resolveBaseUrl", () => {
-  it("uses Xerpa test default and prod opt-in", () => {
+  it("defaults to prod and honors XAGT_API_BASE override", () => {
     const originalBase = process.env.XAGT_API_BASE;
-    const originalEnv = process.env.XAGT_ENV;
 
     delete process.env.XAGT_API_BASE;
-    delete process.env.XAGT_ENV;
-    expect(resolveBaseUrl()).toBe("https://testdapp.xerpaai.com");
-
-    process.env.XAGT_ENV = "prod";
     expect(resolveBaseUrl()).toBe("https://api.xerpaai.com");
 
     process.env.XAGT_API_BASE = "https://custom.example.com";
@@ -56,11 +51,6 @@ describe("resolveBaseUrl", () => {
       delete process.env.XAGT_API_BASE;
     } else {
       process.env.XAGT_API_BASE = originalBase;
-    }
-    if (originalEnv === undefined) {
-      delete process.env.XAGT_ENV;
-    } else {
-      process.env.XAGT_ENV = originalEnv;
     }
   });
 });

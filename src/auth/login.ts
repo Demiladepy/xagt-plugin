@@ -12,11 +12,16 @@ export async function runLogin(input: {
   version: string;
 }): Promise<SavedCredentials> {
   if (input.authMode === "device") {
-    return loginWithDeviceCode({ baseUrl: input.baseUrl, clientVersion: input.version });
+    return loginWithDeviceCode({
+      baseUrl: input.baseUrl,
+      frontendBase: input.frontendBase,
+      clientVersion: input.version
+    });
   }
   if (input.authMode === "loopback") {
     return loginWithLoopback({
       baseUrl: input.baseUrl,
+      frontendBase: input.frontendBase,
       clientVersion: input.version,
       openBrowser: true
     });

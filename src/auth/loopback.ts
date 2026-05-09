@@ -3,6 +3,7 @@ import { execFile } from "node:child_process";
 import { URL } from "node:url";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { exchangeLoopbackCode, initLoopbackAuth } from "./exchange.js";
+import { buildLoopbackLoginUrl } from "./url.js";
 import type { SavedCredentials } from "./credentials.js";
 
 interface CallbackResult {
@@ -23,6 +24,7 @@ interface CallbackState {
 
 export async function loginWithLoopback(input: {
   baseUrl: string;
+  frontendBase: string;
   clientVersion: string;
   openBrowser: boolean;
 }): Promise<SavedCredentials> {
@@ -35,11 +37,17 @@ export async function loginWithLoopback(input: {
       clientVersion: input.clientVersion
     });
 
+    const loginUrl = buildLoopbackLoginUrl({
+      frontendBase: input.frontendBase,
+      baseUrl: input.baseUrl,
+      sessionId: init.sessionId,
+      state: init.state
+    });
     process.stdout.write("\n  Open this URL to log in to XAgent:\n\n");
-    process.stdout.write(`    ${init.loginUrl}\n\n`);
+    process.stdout.write(`    ${loginUrl}\n\n`);
     if (input.openBrowser) {
       process.stdout.write("  Opening your default browser...\n");
-      await openBrowser(init.loginUrl);
+      await openBrowser(loginUrl);
     }
     process.stdout.write("  Waiting for authorization (timeout 2m)...\n");
 

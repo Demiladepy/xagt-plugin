@@ -322,23 +322,11 @@ function readPackageVersion(): string {
 }
 
 export function resolveBaseUrl(): string {
-  if (process.env.XAGT_API_BASE) {
-    return process.env.XAGT_API_BASE;
-  }
-  if (process.env.XAGT_ENV === "prod") {
-    return "https://api.xerpaai.com";
-  }
-  return "https://testdapp.xerpaai.com";
+  return process.env.XAGT_API_BASE ?? "https://api.xerpaai.com";
 }
 
 export function resolveFrontendBase(): string {
-  if (process.env.XAGT_FRONTEND_BASE) {
-    return process.env.XAGT_FRONTEND_BASE;
-  }
-  if (process.env.XAGT_ENV === "prod") {
-    return "https://www.xerpaai.com";
-  }
-  return "https://testwww.xerpaai.com";
+  return process.env.XAGT_FRONTEND_BASE ?? "https://www.xerpaai.com";
 }
 
 function isMainModule(): boolean {
@@ -357,6 +345,11 @@ if (isMainModule()) {
   runCli(process.argv.slice(2)).catch((error: unknown) => {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`${message}\n`);
+    if (error instanceof Error && error.cause !== undefined && error.cause !== null) {
+      const cause = error.cause as { code?: string; message?: string };
+      const detail = cause.code ?? cause.message ?? String(cause);
+      if (detail) process.stderr.write(`  cause: ${detail}\n`);
+    }
     process.exitCode = 1;
   });
 }
